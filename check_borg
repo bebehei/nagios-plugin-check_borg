@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -o errexit
 set -o nounset
 
@@ -72,11 +72,11 @@ while getopts ":vhR:a:c:w:" opt; do
 done
 
 
-if [[ -z "${COMMAND_BORG}" ]]; then
+if [ -z "${COMMAND_BORG}" ]; then
 	error "No command 'borg' available."
 fi
 
-if [[ -z "${repo}" ]]; then
+if [ -z "${repo}" ]; then
 	error "No repository specified!"
 fi
 verbose "repo ${repo}"
