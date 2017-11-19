@@ -95,12 +95,12 @@ sec_last="$(borg list --format '{time}{NUL}' "${repo}" | xargs '-0' '-I&' 'date'
 last="$(date --date="@${sec_last}")"
 
 # interpret the amount of fails
-if   [ "${sec_warn}" -gt "${sec_last}" ]; then
-	state=$STATE_WARNING
-	msg="BORG WARN, last backup made on ${last}"
-elif [ "${sec_crit}" -gt "${sec_last}" ]; then
+if [ "${sec_crit}" -gt "${sec_last}" ]; then
 	state=$STATE_CRITICAL
 	msg="BORG CRITICAL, last backup made on ${last}"
+elif [ "${sec_warn}" -gt "${sec_last}" ]; then
+	state=$STATE_WARNING
+	msg="BORG WARN, last backup made on ${last}"
 else
 	state=$STATE_OK
 	msg="BORG OK, last backup made on ${last}"
