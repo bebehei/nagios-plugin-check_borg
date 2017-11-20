@@ -30,6 +30,7 @@ error(){   echo "$*" >&2; exit $STATE_UNKNOWN; }
 crit='7 days ago'
 warn='3 days ago'
 verbose=0
+repo=''
 
 usage(){
 	cat >&2 <<-FIN
