@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/bin/sh
+set -o errexit
+set -o nounset
 
 PROGNAME=$(basename "$0")
 PROGPATH=$(echo "$0" | sed -e 's,[\\/][^\\/][^\\/]*$,,')
@@ -20,16 +22,18 @@ else
 	exit 128
 fi
 
-debug(){   [ "$verbose" -gt 1 ] && echo "$*"; }
-verbose(){ [ "$verbose" -gt 0 ] && echo "$*"; }
+debug(){   ([ "$verbose" -gt 1 ] && echo "$*") || return 0; }
+verbose(){ ([ "$verbose" -gt 0 ] && echo "$*") || return 0; }
+
 error(){   echo "$*" >&2; exit $STATE_UNKNOWN; }
 
 crit='7 days ago'
 warn='3 days ago'
 verbose=0
+repo=''
 
 usage(){
-	cat >&2 <<-FIN 
+	cat >&2 <<-FIN
 	usage: $PROGNAME -R REPO [-w DATE] [-c DATE] [ -h -v ]
 
 	REPO: borg repo-url
@@ -69,11 +73,11 @@ while getopts ":vhR:a:c:w:" opt; do
 done
 
 
-if [[ -z "${COMMAND_BORG}" ]]; then
+if [ -z "${COMMAND_BORG}" ]; then
 	error "No command 'borg' available."
 fi
 
-if [[ -z "${repo}" ]]; then
+if [ -z "${repo}" ]; then
 	error "No repository specified!"
 fi
 verbose "repo ${repo}"
@@ -84,7 +88,6 @@ sec_crit="$(date --date="${crit}" '+%s')"
 
 # check warning and critical values
 if check_range "${sec_crit}" 0:"${sec_warn}" ; then
-	# 
 	error "Warning value has to be a more recent timepoint than critical."
 fi
 
@@ -93,12 +96,12 @@ sec_last="$(borg list --format '{time}{NUL}' "${repo}" | xargs '-0' '-I&' 'date'
 last="$(date --date="@${sec_last}")"
 
 # interpret the amount of fails
-if   [ "${sec_warn}" -gt "${sec_last}" ]; then
-	state=$STATE_WARN
-	msg="BORG WARN, last backup made on ${last}"
-elif [ "${sec_crit}" -gt "${sec_last}" ]; then
+if [ "${sec_crit}" -gt "${sec_last}" ]; then
 	state=$STATE_CRITICAL
 	msg="BORG CRITICAL, last backup made on ${last}"
+elif [ "${sec_warn}" -gt "${sec_last}" ]; then
+	state=$STATE_WARNING
+	msg="BORG WARN, last backup made on ${last}"
 else
 	state=$STATE_OK
 	msg="BORG OK, last backup made on ${last}"
