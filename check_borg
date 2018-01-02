@@ -5,7 +5,7 @@ set -o nounset
 PROGNAME=$(basename "$0")
 PROGPATH=$(echo "$0" | sed -e 's,[\\/][^\\/][^\\/]*$,,')
 REVISION="0.1"
-COMMAND_BORG="$(command -v borg)"
+COMMAND_BORG="$(command -v ${COMMAND_BORG:-borg})"
 
 # source a utils.sh from nagios-plugins
 # if the check is not executed in the normal check-directory,
