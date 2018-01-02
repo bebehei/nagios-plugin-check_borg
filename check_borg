@@ -92,8 +92,23 @@ if check_range "${sec_crit}" 0:"${sec_warn}" ; then
 fi
 
 # get unixtime of last backup
-sec_last="$(borg list --format '{time}{NUL}' "${repo}" | xargs '-0' '-I&' 'date' '--date=&' '+%s' | sort | tail -n 1)"
-last="$(date --date="@${sec_last}")"
+# As there are easier and safer ways to get the latest time stamp in the current borg version,
+# use the ugly ones only when neccessary
+case "$(${COMMAND_BORG} --version | cut -d' ' -f2)" in
+	1.0*)
+		# Get the archive names and then get via borg info the date for the latest archive name
+		# We have to split the pipe chains, as we have to catch if borg failed to execute
+		last_archive="$(${COMMAND_BORG} list --short "${repo}" || exit ${STATE_UNKNOWN})"
+		last_archive="$(echo "${last_archive}" | tail -n 1)"
+		last="$(${COMMAND_BORG} info "${repo}"::"${last_archive}" || exit ${STATE_UNKNOWN})"
+		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
+		sec_last="$(date --date="${last}" '+%s')"
+		;;
+	*)
+		last="$(${COMMAND_BORG} list --sort timestamp --last 1 --format '{time}' "${repo}" || exit ${STATE_UNKNOWN})"
+		sec_last="$(date --date="${last}" '+%s')"
+		;;
+esac
 
 # interpret the amount of fails
 if [ "${sec_crit}" -gt "${sec_last}" ]; then
