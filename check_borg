@@ -33,12 +33,14 @@ verbose=0
 
 usage(){
 	cat >&2 <<-FIN
-	usage: $PROGNAME [-R REPO] [-w DATE] [-c DATE] [ -h -v ]
+	usage: $PROGNAME [-C CONF] [-R REPO] [-w DATE] [-c DATE] [ -h -v ]
 
 	REPO: borg repo-url
 	DATE: Any valid date for the date-command.
 	      default for -w: "${warn}"
 	      default for -c: "${crit}"
+	CONF: A configuration file, which will get sourced. You
+	      can use this to set the necessary env variables.
 
 	You have to specify in the environment:
 	  - BORG_REPO if you haven't passed the -R flag
@@ -47,7 +49,7 @@ usage(){
 	exit $STATE_UNKNOWN
 }
 
-while getopts ":vhR:a:c:w:" opt; do
+while getopts ":vhR:C:a:c:w:" opt; do
 	case $opt in
 		v)
 			verbose=$((verbose + 1))
@@ -57,6 +59,11 @@ while getopts ":vhR:a:c:w:" opt; do
 			;;
 		R)
 			export "BORG_REPO=$OPTARG"
+			;;
+		C)
+			[ -e "${OPTARG}" ] || error "Configuration file '${OPTARG}' does not exist."
+			[ -r "${OPTARG}" ] || error "Could not read configuration file '${OPTARG}'."
+			. "${OPTARG}"      || error "Could not source configuration file '${OPTARG}'."
 			;;
 		c)
 			crit=$OPTARG
