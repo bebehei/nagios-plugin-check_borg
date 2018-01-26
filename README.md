@@ -6,9 +6,11 @@ Usable with nagios, icinga2 or any other nagios-fork.
 
 # Usage
 
-    ./check_borg -R <borg-repo-url> [ -c <date> ] [ -w <date> ]
+    ./check_borg [ -R <borg-repo-url> ] [ -c <date> ] [ -w <date> ]
 
 `<date>` can be any valid format parsable by the date-command. So `last day` would be a valid date.
+
+`-R` can be omitted, when `BORG_REPO` is set in the environment.
 
 ## Passwords
 
