@@ -30,21 +30,26 @@ error(){   echo "$*" >&2; exit $STATE_UNKNOWN; }
 crit='7 days ago'
 warn='3 days ago'
 verbose=0
-repo=''
 
 usage(){
 	cat >&2 <<-FIN
-	usage: $PROGNAME -R REPO [-w DATE] [-c DATE] [ -h -v ]
+	usage: $PROGNAME [-C CONF] [-R REPO] [-w DATE] [-c DATE] [ -h -v ]
 
 	REPO: borg repo-url
 	DATE: Any valid date for the date-command.
 	      default for -w: "${warn}"
 	      default for -c: "${crit}"
+	CONF: A configuration file, which will get sourced. You
+	      can use this to set the necessary env variables.
+
+	You have to specify in the environment:
+	  - BORG_REPO if you haven't passed the -R flag
+	  - BORG_PASSPHRASE if your repo is encrypted
 	FIN
 	exit $STATE_UNKNOWN
 }
 
-while getopts ":vhR:a:c:w:" opt; do
+while getopts ":vhR:C:a:c:w:" opt; do
 	case $opt in
 		v)
 			verbose=$((verbose + 1))
@@ -53,7 +58,12 @@ while getopts ":vhR:a:c:w:" opt; do
 			usage
 			;;
 		R)
-			repo=$OPTARG
+			export "BORG_REPO=$OPTARG"
+			;;
+		C)
+			[ -e "${OPTARG}" ] || error "Configuration file '${OPTARG}' does not exist."
+			[ -r "${OPTARG}" ] || error "Could not read configuration file '${OPTARG}'."
+			. "${OPTARG}"      || error "Could not source configuration file '${OPTARG}'."
 			;;
 		c)
 			crit=$OPTARG
@@ -77,10 +87,10 @@ if [ -z "${COMMAND_BORG}" ]; then
 	error "No command 'borg' available."
 fi
 
-if [ -z "${repo}" ]; then
+if [ -z "${BORG_REPO:-""}" ]; then
 	error "No repository specified!"
 fi
-verbose "repo ${repo}"
+verbose "repo ${BORG_REPO}"
 
 # convert values to seconds to enable comparison
 sec_warn="$(date --date="${warn}" '+%s')"
@@ -98,14 +108,14 @@ case "$(${COMMAND_BORG} --version | cut -d' ' -f2)" in
 	1.0*)
 		# Get the archive names and then get via borg info the date for the latest archive name
 		# We have to split the pipe chains, as we have to catch if borg failed to execute
-		last_archive="$(${COMMAND_BORG} list --short "${repo}" || exit ${STATE_UNKNOWN})"
+		last_archive="$(${COMMAND_BORG} list --short || exit ${STATE_UNKNOWN})"
 		last_archive="$(echo "${last_archive}" | tail -n 1)"
-		last="$(${COMMAND_BORG} info "${repo}"::"${last_archive}" || exit ${STATE_UNKNOWN})"
+		last="$(${COMMAND_BORG} info "::${last_archive}" || exit ${STATE_UNKNOWN})"
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
 		sec_last="$(date --date="${last}" '+%s')"
 		;;
 	*)
-		last="$(${COMMAND_BORG} list --sort timestamp --last 1 --format '{time}' "${repo}" || exit ${STATE_UNKNOWN})"
+		last="$(${COMMAND_BORG} list --sort timestamp --last 1 --format '{time}' || exit ${STATE_UNKNOWN})"
 		sec_last="$(date --date="${last}" '+%s')"
 		;;
 esac
