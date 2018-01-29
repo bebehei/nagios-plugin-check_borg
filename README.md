@@ -23,6 +23,11 @@ Usable with nagios, icinga2 or any other nagios-fork.
 
 Export `BORG_PASSPHRASE`.
 
+# Requirements
+
+- GNU's version of `date`.
+- [borgbackup](https://github.com/borgbackup/borg/)
+
 # Warnings
 
 - Be sure about the implications, when monitoring a repository secured with a passphrase.
