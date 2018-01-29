@@ -5,7 +5,6 @@ set -o nounset
 PROGNAME=$(basename "$0")
 PROGPATH=$(echo "$0" | sed -e 's,[\\/][^\\/][^\\/]*$,,')
 REVISION="0.1"
-COMMAND_BORG="$(command -v ${COMMAND_BORG:-borg})"
 
 # source a utils.sh from nagios-plugins
 # if the check is not executed in the normal check-directory,
@@ -49,6 +48,10 @@ usage(){
 	exit $STATE_UNKNOWN
 }
 
+: ${BORG:=borg}
+command -v "${BORG}" >/dev/null 2>/dev/null \
+	|| error "No command '${BORG}' available."
+
 while getopts ":vhR:C:a:c:w:" opt; do
 	case $opt in
 		v)
@@ -82,11 +85,6 @@ while getopts ":vhR:C:a:c:w:" opt; do
 	esac
 done
 
-
-if [ -z "${COMMAND_BORG}" ]; then
-	error "No command 'borg' available."
-fi
-
 if [ -z "${BORG_REPO:-""}" ]; then
 	error "No repository specified!"
 fi
@@ -104,18 +102,18 @@ fi
 # get unixtime of last backup
 # As there are easier and safer ways to get the latest time stamp in the current borg version,
 # use the ugly ones only when neccessary
-case "$(${COMMAND_BORG} --version | cut -d' ' -f2)" in
+case "$(${BORG} --version | cut -d' ' -f2)" in
 	1.0*)
 		# Get the archive names and then get via borg info the date for the latest archive name
 		# We have to split the pipe chains, as we have to catch if borg failed to execute
-		last_archive="$(${COMMAND_BORG} list --short || exit ${STATE_UNKNOWN})"
+		last_archive="$(${BORG} list --short || exit ${STATE_UNKNOWN})"
 		last_archive="$(echo "${last_archive}" | tail -n 1)"
-		last="$(${COMMAND_BORG} info "::${last_archive}" || exit ${STATE_UNKNOWN})"
+		last="$(${BORG} info "::${last_archive}" || exit ${STATE_UNKNOWN})"
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
 		sec_last="$(date --date="${last}" '+%s')"
 		;;
 	*)
-		last="$(${COMMAND_BORG} list --sort timestamp --last 1 --format '{time}' || exit ${STATE_UNKNOWN})"
+		last="$(${BORG} list --sort timestamp --last 1 --format '{time}' || exit ${STATE_UNKNOWN})"
 		sec_last="$(date --date="${last}" '+%s')"
 		;;
 esac

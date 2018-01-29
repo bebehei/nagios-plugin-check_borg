@@ -14,6 +14,10 @@ Usable with nagios, icinga2 or any other nagios-fork.
 
 `CONF` is a file, which will get sourced. It can export variables like `BORG_PASSPHRASE` and `BORG_REPO`. You can separate with this file your borg specifc secrets from the icinga2 configuration.
 
+## Non-standard executable paths
+
+- If your `borg` executable is not installed in your `$PATH` or is not called `borg`, you can define the environment variable `BORG` to point to the correct command.
+
 ## Passwords
 
 Export `BORG_PASSPHRASE`.
