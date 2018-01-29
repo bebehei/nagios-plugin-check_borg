@@ -4,7 +4,6 @@ set -o nounset
 
 PROGNAME=$(basename "$0")
 PROGPATH=$(echo "$0" | sed -e 's,[\\/][^\\/][^\\/]*$,,')
-REVISION="0.1"
 
 # source a utils.sh from nagios-plugins
 # if the check is not executed in the normal check-directory,
@@ -56,7 +55,7 @@ command -v "${BORG}" >/dev/null 2>/dev/null \
 command -v "${DATE}" >/dev/null 2>/dev/null \
 	|| error "No command '${DATE}' available."
 
-while getopts ":vhR:C:a:c:w:" opt; do
+while getopts ":vhR:C:c:w:" opt; do
 	case $opt in
 		v)
 			verbose=$((verbose + 1))
