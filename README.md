@@ -12,11 +12,21 @@ Usable with nagios, icinga2 or any other nagios-fork.
 
 `-R` can be omitted, when `BORG_REPO` is set in the environment.
 
-`CONF` is a file, which will get sourced. It can export variables like `BORG_PASSPHRASE` and `BORG_REPO`. You can separate with this file your borg specifc secrets from the icinga2 configuration.
+`CONF` is a file, which will get sourced. It can export variables like `BORG_PASSPHRASE` and `BORG_REPO`. You can separate with this file your borg specific secrets from the icinga2 configuration.
+
+## Non-standard executable paths
+
+- If your `borg` executable is not installed in your `$PATH` or is not called `borg`, you can define the environment variable `BORG` to point to the correct command.
+- If the GNU `date` executable is not installed as `date`, you can set the environment variable `DATE` to point to the correct `date` command.
 
 ## Passwords
 
 Export `BORG_PASSPHRASE`.
+
+# Requirements
+
+- GNU's version of `date`.
+- [borgbackup](https://github.com/borgbackup/borg/)
 
 # Warnings
 
