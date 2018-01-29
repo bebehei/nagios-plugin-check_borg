@@ -17,6 +17,7 @@ Usable with nagios, icinga2 or any other nagios-fork.
 ## Non-standard executable paths
 
 - If your `borg` executable is not installed in your `$PATH` or is not called `borg`, you can define the environment variable `BORG` to point to the correct command.
+- If the GNU `date` executable is not installed as `date`, you can set the environment variable `DATE` to point to the correct `date` command.
 
 ## Passwords
 

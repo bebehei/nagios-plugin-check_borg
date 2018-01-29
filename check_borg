@@ -52,6 +52,10 @@ usage(){
 command -v "${BORG}" >/dev/null 2>/dev/null \
 	|| error "No command '${BORG}' available."
 
+: ${DATE:=date}
+command -v "${DATE}" >/dev/null 2>/dev/null \
+	|| error "No command '${DATE}' available."
+
 while getopts ":vhR:C:a:c:w:" opt; do
 	case $opt in
 		v)
@@ -91,8 +95,8 @@ fi
 verbose "repo ${BORG_REPO}"
 
 # convert values to seconds to enable comparison
-sec_warn="$(date --date="${warn}" '+%s')"
-sec_crit="$(date --date="${crit}" '+%s')"
+sec_warn="$(${DATE} --date="${warn}" '+%s')"
+sec_crit="$(${DATE} --date="${crit}" '+%s')"
 
 # check warning and critical values
 if check_range "${sec_crit}" 0:"${sec_warn}" ; then
@@ -110,11 +114,11 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		last_archive="$(echo "${last_archive}" | tail -n 1)"
 		last="$(${BORG} info "::${last_archive}" || exit ${STATE_UNKNOWN})"
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
-		sec_last="$(date --date="${last}" '+%s')"
+		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 	*)
 		last="$(${BORG} list --sort timestamp --last 1 --format '{time}' || exit ${STATE_UNKNOWN})"
-		sec_last="$(date --date="${last}" '+%s')"
+		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 esac
 
