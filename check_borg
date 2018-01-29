@@ -105,7 +105,7 @@ fi
 
 # get unixtime of last backup
 # As there are easier and safer ways to get the latest time stamp in the current borg version,
-# use the ugly ones only when neccessary
+# use the ugly ones only when necessary
 case "$(${BORG} --version | cut -d' ' -f2)" in
 	1.0*)
 		# Get the archive names and then get via borg info the date for the latest archive name

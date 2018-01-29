@@ -12,7 +12,7 @@ Usable with nagios, icinga2 or any other nagios-fork.
 
 `-R` can be omitted, when `BORG_REPO` is set in the environment.
 
-`CONF` is a file, which will get sourced. It can export variables like `BORG_PASSPHRASE` and `BORG_REPO`. You can separate with this file your borg specifc secrets from the icinga2 configuration.
+`CONF` is a file, which will get sourced. It can export variables like `BORG_PASSPHRASE` and `BORG_REPO`. You can separate with this file your borg specific secrets from the icinga2 configuration.
 
 ## Non-standard executable paths
 
