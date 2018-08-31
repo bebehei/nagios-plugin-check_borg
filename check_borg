@@ -115,14 +115,14 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		last="$(${BORG} info "::${last_archive}")"
 		[ "$?" = 0 ] || error "Cannot get archive info for '${last_archive}'. Repo Locked?"
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
-		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 	*)
 		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
 		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
-		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 esac
+
+sec_last="$(${DATE} --date="${last}" '+%s')"
 
 # interpret the amount of fails
 if [ "${sec_crit}" -gt "${sec_last}" ]; then
