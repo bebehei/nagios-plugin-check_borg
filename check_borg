@@ -2,7 +2,7 @@
 
 set -o nounset
 
-# export borg env vars here
+# export borg env vars here - fill in the blank
 # do not forget to run chmod (e.g. chmod 700 path/to/check_borg)
 export BORG_PASSPHRASE=''
 export BORG_REPO=''
@@ -25,9 +25,9 @@ else
   exit 128
 fi
 
-debug() { ([ "$verbose" -gt 1 ] && echo "$*") || return 0; }
-verbose() { ([ "$verbose" -gt 0 ] && echo "$*") || return 0; }
-error() { echo "$*" >&2; exit ${STATE_UNKNOWN}; }
+debug() { ([ "${verbose}" -gt 1 ] && echo "$*") || return 0; }
+verbose() { ([ "${verbose}" -gt 0 ] && echo "$*") || return 0; }
+error() { echo "BORG UNKNOWN, $*"; exit "${STATE_UNKNOWN}"; }
 
 crit='7 days ago'
 warn='3 days ago'
@@ -48,17 +48,17 @@ usage() {
 	  - BORG_REPO if you haven't passed the -R flag
 	  - BORG_PASSPHRASE if your repo is encrypted
 	EOF
-  exit ${STATE_UNKNOWN}
+  exit "${STATE_UNKNOWN}"
 }
 
-: ${BORG:=borg}
+: "${BORG:=borg}"
 command -v "${BORG}" > /dev/null 2>&1 || error "No command '${BORG}' available."
 
-: ${DATE:=date}
+: "${DATE:=date}"
 command -v "${DATE}" > /dev/null 2>&1 || error "No command '${DATE}' available."
 
 while getopts ":vhR:C:c:w:" opt; do
-  case $opt in
+  case "${opt}" in
     v)
       verbose=$((verbose + 1))
       ;;
@@ -74,10 +74,10 @@ while getopts ":vhR:C:c:w:" opt; do
       . "${OPTARG}"      || error "Could not source configuration file '${OPTARG}'."
       ;;
     c)
-      crit=${OPTARG}
+      crit="${OPTARG}"
       ;;
     w)
-      warn=${OPTARG}
+      warn="${OPTARG}"
       ;;
     \?)
       error "Invalid option: -${OPTARG}"
@@ -100,7 +100,7 @@ sec_warn="$(${DATE} --date="${warn}" '+%s')"
 sec_crit="$(${DATE} --date="${crit}" '+%s')"
 
 # check warning and critical values
-if check_range "${sec_crit}" 0:"${sec_warn}" ; then
+if check_range "${sec_crit}" 0:"${sec_warn}"; then
   error "Warning value has to be a more recent timepoint than critical."
 fi
 
@@ -111,36 +111,39 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
   1.0*)
     # Get the archive names and then get via borg info the date for the latest archive name
     # We have to split the pipe chains, as we have to catch if borg failed to execute
-    last_archive="$(${BORG} list --short || exit ${STATE_UNKNOWN})"
+    last_archive="$(${BORG} list --short)"
+    [ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
     last_archive="$(echo "${last_archive}" | tail -n 1)"
-    last="$(${BORG} info "::${last_archive}" || exit ${STATE_UNKNOWN})"
+    last="$(${BORG} info "::${last_archive}")"
+    [ "$?" = 0 ] || error "Cannot get archive info for '${last_archive}'. Repo Locked?"
     last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
-    sec_last="$(${DATE} --date="${last}" '+%s')"
     ;;
   *)
     # Current versions of borg already come with batteries included
     last="$(${BORG} list --sort timestamp --last 1 --format '{time}' 2> /dev/null)"
-    # If something goes wrong here, exit appropriately
-    if [ $? != 0 ]; then
-      echo "BORG CRITICAL, borg list failed"
-      exit ${STATE_CRITICAL}
-    else
-      sec_last="$(${DATE} --date="${last}" '+%s')"
-    fi
+    [ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
     ;;
 esac
 
+
+if [ -z "${last}" ]; then
+  echo "BORG CRITICAL, no archive in repository"
+  exit "${STATE_CRITICAL}"
+fi
+
+sec_last="$(${DATE} --date="${last}" '+%s')"
+
 # interpret the amount of fails
 if [ "${sec_crit}" -gt "${sec_last}" ]; then
-  state=${STATE_CRITICAL}
+  state="${STATE_CRITICAL}"
   msg="BORG CRITICAL, last backup made on ${last}"
 elif [ "${sec_warn}" -gt "${sec_last}" ]; then
-  state=${STATE_WARNING}
+  state="${STATE_WARNING}"
   msg="BORG WARN, last backup made on ${last}"
 else
-  state=${STATE_OK}
+  state="${STATE_OK}"
   msg="BORG OK, last backup made on ${last}"
 fi
 
-echo "$msg"
-exit $state
+echo "${msg}"
+exit "${state}"
