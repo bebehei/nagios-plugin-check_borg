@@ -9,8 +9,8 @@ PROGPATH=$(echo "$0" | sed -e 's,[\\/][^\\/][^\\/]*$,,')
 # if the check is not executed in the normal check-directory,
 # we'll search on common places. This gives us the ability to
 # avoid problems with the package-manager
-if [ -r "$PROGPATH/utils.sh" ] && [ -f "$PROGPATH/utils.sh" ]; then
-	. "$PROGPATH/utils.sh"
+if [ -r "${PROGPATH}/utils.sh" ] && [ -f "${PROGPATH}/utils.sh" ]; then
+	. "${PROGPATH}/utils.sh"
 elif [ -r /usr/lib/nagios/plugins/utils.sh ] && [ -f /usr/lib/nagios/plugins/utils.sh ]; then
 	. /usr/lib/nagios/plugins/utils.sh
 elif [ -r /usr/lib/monitoring-plugins/utils.sh ] && [ -f /usr/lib/monitoring-plugins/utils.sh ]; then
@@ -20,10 +20,10 @@ else
 	exit 128
 fi
 
-debug(){   ([ "$verbose" -gt 1 ] && echo "$*") || return 0; }
-verbose(){ ([ "$verbose" -gt 0 ] && echo "$*") || return 0; }
+debug(){   ([ "${verbose}" -gt 1 ] && echo "$*") || return 0; }
+verbose(){ ([ "${verbose}" -gt 0 ] && echo "$*") || return 0; }
 
-error(){   echo "$*" >&2; exit $STATE_UNKNOWN; }
+error(){   echo "$*" >&2; exit "${STATE_UNKNOWN}"; }
 
 crit='7 days ago'
 warn='3 days ago'
@@ -31,7 +31,7 @@ verbose=0
 
 usage(){
 	cat >&2 <<-FIN
-	usage: $PROGNAME [-C CONF] [-R REPO] [-w DATE] [-c DATE] [ -h -v ]
+	usage: ${PROGNAME} [-C CONF] [-R REPO] [-w DATE] [-c DATE] [ -h -v ]
 
 	REPO: borg repo-url
 	DATE: Any valid date for the date-command.
@@ -44,19 +44,19 @@ usage(){
 	  - BORG_REPO if you haven't passed the -R flag
 	  - BORG_PASSPHRASE if your repo is encrypted
 	FIN
-	exit $STATE_UNKNOWN
+	exit "${STATE_UNKNOWN}"
 }
 
-: ${BORG:=borg}
+: "${BORG:=borg}"
 command -v "${BORG}" >/dev/null 2>/dev/null \
 	|| error "No command '${BORG}' available."
 
-: ${DATE:=date}
+: "${DATE:=date}"
 command -v "${DATE}" >/dev/null 2>/dev/null \
 	|| error "No command '${DATE}' available."
 
 while getopts ":vhR:C:c:w:" opt; do
-	case $opt in
+	case "${opt}" in
 		v)
 			verbose=$((verbose + 1))
 			;;
@@ -64,7 +64,7 @@ while getopts ":vhR:C:c:w:" opt; do
 			usage
 			;;
 		R)
-			export "BORG_REPO=$OPTARG"
+			export "BORG_REPO=${OPTARG}"
 			;;
 		C)
 			[ -e "${OPTARG}" ] || error "Configuration file '${OPTARG}' does not exist."
@@ -72,17 +72,17 @@ while getopts ":vhR:C:c:w:" opt; do
 			. "${OPTARG}"      || error "Could not source configuration file '${OPTARG}'."
 			;;
 		c)
-			crit=$OPTARG
+			crit="${OPTARG}"
 			;;
 		w)
-			warn=$OPTARG
+			warn="${OPTARG}"
 			;;
 		\?)
-			error "Invalid option: -$OPTARG"
+			error "Invalid option: -${OPTARG}"
 			usage
 			;;
 		:)
-			error "Option -$OPTARG requires an argument."
+			error "Option -${OPTARG} requires an argument."
 			usage
 			;;
 	esac
@@ -109,29 +109,29 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 	1.0*)
 		# Get the archive names and then get via borg info the date for the latest archive name
 		# We have to split the pipe chains, as we have to catch if borg failed to execute
-		last_archive="$(${BORG} list --short || exit ${STATE_UNKNOWN})"
+		last_archive="$(${BORG} list --short || exit "${STATE_UNKNOWN}")"
 		last_archive="$(echo "${last_archive}" | tail -n 1)"
-		last="$(${BORG} info "::${last_archive}" || exit ${STATE_UNKNOWN})"
+		last="$(${BORG} info "::${last_archive}" || exit "${STATE_UNKNOWN}")"
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
 		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 	*)
-		last="$(${BORG} list --sort timestamp --last 1 --format '{time}' || exit ${STATE_UNKNOWN})"
+		last="$(${BORG} list --sort timestamp --last 1 --format '{time}' || exit "${STATE_UNKNOWN}")"
 		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 esac
 
 # interpret the amount of fails
 if [ "${sec_crit}" -gt "${sec_last}" ]; then
-	state=$STATE_CRITICAL
+	state="${STATE_CRITICAL}"
 	msg="BORG CRITICAL, last backup made on ${last}"
 elif [ "${sec_warn}" -gt "${sec_last}" ]; then
-	state=$STATE_WARNING
+	state="${STATE_WARNING}"
 	msg="BORG WARN, last backup made on ${last}"
 else
-	state=$STATE_OK
+	state="${STATE_OK}"
 	msg="BORG OK, last backup made on ${last}"
 fi
 
-echo "$msg"
-exit $state
+echo "${msg}"
+exit "${state}"
