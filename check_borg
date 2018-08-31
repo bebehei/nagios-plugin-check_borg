@@ -122,6 +122,11 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		;;
 esac
 
+if [ -z "${last}" ]; then
+	echo "BORG CRITICAL, no archive in repository"
+	exit "${STATE_CRITICAL}"
+fi
+
 sec_last="$(${DATE} --date="${last}" '+%s')"
 
 # interpret the amount of fails
