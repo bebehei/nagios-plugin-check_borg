@@ -1,5 +1,5 @@
 #!/bin/sh
-set -o errexit
+
 set -o nounset
 
 PROGNAME=$(basename "$0")
@@ -23,7 +23,7 @@ fi
 debug(){   ([ "${verbose}" -gt 1 ] && echo "$*") || return 0; }
 verbose(){ ([ "${verbose}" -gt 0 ] && echo "$*") || return 0; }
 
-error(){   echo "$*" >&2; exit "${STATE_UNKNOWN}"; }
+error(){   echo "BORG UNKNOWN, $*"; exit "${STATE_UNKNOWN}"; }
 
 crit='7 days ago'
 warn='3 days ago'
@@ -109,14 +109,17 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 	1.0*)
 		# Get the archive names and then get via borg info the date for the latest archive name
 		# We have to split the pipe chains, as we have to catch if borg failed to execute
-		last_archive="$(${BORG} list --short || exit "${STATE_UNKNOWN}")"
+		last_archive="$(${BORG} list --short)"
+		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
 		last_archive="$(echo "${last_archive}" | tail -n 1)"
-		last="$(${BORG} info "::${last_archive}" || exit "${STATE_UNKNOWN}")"
+		last="$(${BORG} info "::${last_archive}")"
+		[ "$?" = 0 ] || error "Cannot get archive info for '${last_archive}'. Repo Locked?"
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
 		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 	*)
-		last="$(${BORG} list --sort timestamp --last 1 --format '{time}' || exit "${STATE_UNKNOWN}")"
+		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
+		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
 		sec_last="$(${DATE} --date="${last}" '+%s')"
 		;;
 esac
