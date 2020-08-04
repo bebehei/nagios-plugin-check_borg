@@ -121,7 +121,7 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
 		if [ "$?" = 0 ]
 		then
-			if not ps aux | grep 'borg create' >> /dev/null
+			if not ps aux | grep "${BORG}" | grep 'create' | grep "$BORG_REPO" >> /dev/null
 			then
 				error "Cannot list repository archives. Repo Locked?"
 			fi
