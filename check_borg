@@ -133,13 +133,12 @@ if [ -z "${last}" ]; then
 	if ps aux | grep "${BORG}" | grep 'create' | grep "$BORG_REPO" >> /dev/null
 	then
 		# A process most likely on the same repo is running
-	        state="${STATE_OK}"
-		hours=$(ps -xo etime,cmd | grep "${BORG}" | grep -v python | grep "${BORG_REPO}" | sed 's/^[ ]*//g')
+		hours=$(ps -xo etime,cmd | grep "${BORG}" | grep 'create' | grep -v 'python' | grep "${BORG_REPO}" | sed 's/^[ ]*//g' | cut -d ' ' -f 1)
+		#echo "$hours  <= hours"
 		inhours=$(echo $hours | awk -F- '{ print $1":"$2 }' | awk -F: '{ print ($1 * 24) + $2 }')
-		from=$(date -d "$inhours hours ago" "+%a %Y-%m-%d %H:%M:%S");
-		msg="BORG OK, still running from ${from}"
-		echo "${msg}"
-		exit "${state}"
+		#echo "$inhours  <= inhours"
+		last=$(${DATE} -d "$inhours hours ago" "+%a %Y-%m-%d %H:%M:%S");
+		stillrunning=1
 	else
 		echo "BORG CRITICAL, no archive in repository"
 		exit "${STATE_CRITICAL}"
@@ -157,7 +156,12 @@ elif [ "${sec_warn}" -gt "${sec_last}" ]; then
 	msg="BORG WARN, last backup made on ${last}"
 else
 	state="${STATE_OK}"
-	msg="BORG OK, last backup made on ${last}"
+	if [ $stillrunning ] ;
+	then
+		msg="BORG OK, still running from ${last}"
+	else
+		msg="BORG OK, last backup made on ${last}"
+	fi
 fi
 
 echo "${msg}"
