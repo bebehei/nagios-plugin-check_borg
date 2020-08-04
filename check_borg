@@ -1,4 +1,5 @@
 #!/bin/sh
+# @see https://github.com/bebehei/nagios-plugin-check_borg
 
 set -o nounset
 
@@ -118,13 +119,31 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		;;
 	*)
 		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
-		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
+		if [ "$?" = 0 ]
+		then
+			if not ps aux | grep 'borg create' >> /dev/null
+			then
+				error "Cannot list repository archives. Repo Locked?"
+			fi
+		fi
 		;;
 esac
 
 if [ -z "${last}" ]; then
-	echo "BORG CRITICAL, no archive in repository"
-	exit "${STATE_CRITICAL}"
+	if ps aux | grep "${BORG}" | grep 'create' | grep "$BORG_REPO" >> /dev/null
+	then
+		# A process most likely on the same repo is running
+	        state="${STATE_OK}"
+		hours=$(ps -xo etime,cmd | grep "${BORG}" | grep -v python | grep "${BORG_REPO}" | sed 's/^[ ]*//g')
+		inhours=$(echo $hours | awk -F- '{ print $1":"$2 }' | awk -F: '{ print ($1 * 24) + $2 }')
+		from=$(date -d "$inhours hours ago" "+%a %Y-%m-%d %H:%M:%S");
+		msg="BORG OK, still running from ${from}"
+		echo "${msg}"
+		exit "${state}"
+	else
+		echo "BORG CRITICAL, no archive in repository"
+		exit "${STATE_CRITICAL}"
+	fi
 fi
 
 sec_last="$(${DATE} --date="${last}" '+%s')"
