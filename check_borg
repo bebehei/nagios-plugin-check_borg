@@ -121,7 +121,7 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
 		if [ "$?" = 0 ]
 		then
-			if not ps aux | grep "${BORG}" | grep 'create' | grep "$BORG_REPO" >> /dev/null
+			if ! (ps aux | grep -E "${BORG}.*create.*${BORG_REPO}" >> /dev/null)
 			then
 				error "Cannot list repository archives. Repo Locked?"
 			fi
@@ -129,11 +129,16 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		;;
 esac
 
+stillrunning=0
+
 if [ -z "${last}" ]; then
-	if ps aux | grep "${BORG}" | grep 'create' | grep "$BORG_REPO" >> /dev/null
+	if ps aux | grep -E "${BORG}.*create.*${BORG_REPO}" >> /dev/null
 	then
 		# A process most likely on the same repo is running
-		hours=$(ps -xo etime,cmd | grep "${BORG}" | grep 'create' | grep -v 'python' | grep "${BORG_REPO}" | sed 's/^[ ]*//g' | cut -d ' ' -f 1)
+		# grep -v python: there is generally 2 processes related to borg on the host, one including python in its name and that doesn't
+		# sed 's/^[ ]*//g': remove the spaces padded up front for no reason by ps
+		# cut -d ' ' -f 1: and take only the first argument, etime, drop the full command name
+		hours=$(ps -xo etime,cmd | grep -E "${BORG}.*create'.*${BORG_REPO}" | grep -v python | sed 's/^[ ]*//g' | cut -d ' ' -f 1)
 		#echo "$hours  <= hours"
 		inhours=$(echo $hours | awk -F- '{ print $1":"$2 }' | awk -F: '{ print ($1 * 24) + $2 }')
 		#echo "$inhours  <= inhours"
@@ -156,7 +161,7 @@ elif [ "${sec_warn}" -gt "${sec_last}" ]; then
 	msg="BORG WARN, last backup made on ${last}"
 else
 	state="${STATE_OK}"
-	if [ $stillrunning ] ;
+	if [ $stillrunning -eq 1 ] ;
 	then
 		msg="BORG OK, still running from ${last}"
 	else
