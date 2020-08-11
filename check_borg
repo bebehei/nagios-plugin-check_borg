@@ -1,4 +1,5 @@
 #!/bin/sh
+# @see https://github.com/bebehei/nagios-plugin-check_borg
 
 set -o nounset
 
@@ -118,13 +119,35 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		;;
 	*)
 		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
-		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
+		if [ "$?" = 0 ]
+		then
+			if ! (ps aux | grep -E "${BORG}.*create.*${BORG_REPO}" >> /dev/null)
+			then
+				error "Cannot list repository archives. Repo Locked?"
+			fi
+		fi
 		;;
 esac
 
+stillrunning=0
+
 if [ -z "${last}" ]; then
-	echo "BORG CRITICAL, no archive in repository"
-	exit "${STATE_CRITICAL}"
+	if ps aux | grep -E "${BORG}.*create.*${BORG_REPO}" >> /dev/null
+	then
+		# A process most likely on the same repo is running
+		# grep -v python: there is generally 2 processes related to borg on the host, one including python in its name and that doesn't
+		# sed 's/^[ ]*//g': remove the spaces padded up front for no reason by ps
+		# cut -d ' ' -f 1: and take only the first argument, etime, drop the full command name
+		hours=$(ps -xo etime,cmd | grep -E "${BORG}.*create'.*${BORG_REPO}" | grep -v python | sed 's/^[ ]*//g' | cut -d ' ' -f 1)
+		#echo "$hours  <= hours"
+		inhours=$(echo $hours | awk -F- '{ print $1":"$2 }' | awk -F: '{ print ($1 * 24) + $2 }')
+		#echo "$inhours  <= inhours"
+		last=$(${DATE} -d "$inhours hours ago" "+%a %Y-%m-%d %H:%M:%S");
+		stillrunning=1
+	else
+		echo "BORG CRITICAL, no archive in repository"
+		exit "${STATE_CRITICAL}"
+	fi
 fi
 
 sec_last="$(${DATE} --date="${last}" '+%s')"
@@ -138,7 +161,12 @@ elif [ "${sec_warn}" -gt "${sec_last}" ]; then
 	msg="BORG WARN, last backup made on ${last}"
 else
 	state="${STATE_OK}"
-	msg="BORG OK, last backup made on ${last}"
+	if [ $stillrunning -eq 1 ] ;
+	then
+		msg="BORG OK, still running from ${last}"
+	else
+		msg="BORG OK, last backup made on ${last}"
+	fi
 fi
 
 echo "${msg}"
