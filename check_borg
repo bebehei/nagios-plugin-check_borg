@@ -28,10 +28,11 @@ error(){   echo "BORG UNKNOWN, $*"; exit "${STATE_UNKNOWN}"; }
 crit='7 days ago'
 warn='3 days ago'
 verbose=0
+prefix=''
 
 usage(){
 	cat >&2 <<-FIN
-	usage: ${PROGNAME} [-C CONF] [-R REPO] [-w DATE] [-c DATE] [ -h -v ]
+	usage: ${PROGNAME} [-C CONF] [-R REPO] [-P PREFIX] [-w DATE] [-c DATE] [ -h -v ]
 
 	REPO: borg repo-url
 	DATE: Any valid date for the date-command.
@@ -39,6 +40,8 @@ usage(){
 	      default for -c: "${crit}"
 	CONF: A configuration file, which will get sourced. You
 	      can use this to set the necessary env variables.
+	PREFIX: Only archives that start with this prefix are
+          considered. (optional)
 
 	You have to specify in the environment:
 	  - BORG_REPO if you haven't passed the -R flag
@@ -55,7 +58,7 @@ command -v "${BORG}" >/dev/null 2>/dev/null \
 command -v "${DATE}" >/dev/null 2>/dev/null \
 	|| error "No command '${DATE}' available."
 
-while getopts ":vhR:C:c:w:" opt; do
+while getopts ":vhR:P:C:c:w:" opt; do
 	case "${opt}" in
 		v)
 			verbose=$((verbose + 1))
@@ -65,6 +68,9 @@ while getopts ":vhR:C:c:w:" opt; do
 			;;
 		R)
 			export "BORG_REPO=${OPTARG}"
+			;;
+		P)
+			prefix="${OPTARG}"
 			;;
 		C)
 			[ -e "${OPTARG}" ] || error "Configuration file '${OPTARG}' does not exist."
@@ -117,7 +123,7 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
 		;;
 	*)
-		last="$(${BORG} list --sort timestamp --last 1 --format '{time}')"
+		last="$(${BORG} list --prefix "${prefix}" --sort timestamp --last 1 --format '{time}')"
 		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
 		;;
 esac
