@@ -6,9 +6,9 @@ Usable with nagios, icinga2 or any other nagios-fork.
 
 # Usage
 
-    ./check_borg [ -C CONF ] [ -R <borg-repo-url> ] [ -c <date> ] [ -w <date> ]
+    ./check_borg [ -C CONF ] [ -R <borg-repo-url> ] [ -P <borg-archivename-prefix> ] [ -c <date> ] [ -w <date> ]
 
-`<date>` can be any valid format parsable by the date-command. So `last day` would be a valid date.
+`<date>` can be any valid format parsable by the date-command. So `last day` or `12 hours ago` would be valid dates.
 
 `-R` can be omitted, when `BORG_REPO` is set in the environment.
 
