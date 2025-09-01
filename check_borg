@@ -123,7 +123,7 @@ case "$(${BORG} --version | cut -d' ' -f2)" in
 		last="$(echo "${last}" | sed -n 's/^Time (start):\s\(.*\)/\1/p')"
 		;;
 	*)
-		last="$(${BORG} list --prefix "${prefix}" --sort timestamp --last 1 --format '{time}')"
+		last="$(${BORG} list --glob-archives "${prefix}*" --sort timestamp --last 1 --format '{time}')"
 		[ "$?" = 0 ] || error "Cannot list repository archives. Repo Locked?"
 		;;
 esac
